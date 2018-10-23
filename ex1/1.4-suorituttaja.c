@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 
 #define MAXLINE 256
+//Kommmentti
 
 int main(void) {
     char buf[MAXLINE];
