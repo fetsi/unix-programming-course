@@ -11,6 +11,7 @@
 int new;
 int fd;
 char buf[MAX_LINE_LENGTH];
+char *msg = "Anna kokonaisluku: ";
 
 int main(int argc, char *argv[]) {
 
@@ -27,13 +28,18 @@ int main(int argc, char *argv[]) {
 
     
     while(1) {
-        printf("Anna kokonaisuku: ");
-        if(scanf("%d", &new) == EOF) {
-            break;
+        
+        write(STDOUT_FILENO, (void*)msg, strlen(msg));
+        ssize_t s = read(STDIN_FILENO, (void*)buf, MAX_LINE_LENGTH);
+        if(s == 0) {
+            //EOF
+            exit(EXIT_SUCCESS);
         }
-        snprintf(buf, MAX_LINE_LENGTH, "%d\n", new);
-        size_t len = strlen(buf);
-        write(fd, (void*)buf, len);
+        s = write(fd, buf, MAX_LINE_LENGTH);
+        if(s == -1) {
+            perror("Virhe kirjoittaessa tiedostoon\n");
+            exit(EXIT_FAILURE);
+        }
     }
     close(fd);
 
