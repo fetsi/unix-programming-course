@@ -27,7 +27,11 @@ int main() {
 
     //Testi 2: Tehdään kova linkki tiedostoon "testi" ja verrataan sitä alkuperäiseen
     link("./testi", "./kovalinkki_testiin");
-    int fd3 = open_file("./kovalinkki_testiin");
+    //int fd3 = open_file("./kovalinkki_testiin");
+    int fd3 = open("./kovalinkki_testiin", 0);
+    if(fd3 == -1) {
+        perror(":");
+    }
     if(sameFile(fd1, fd3)) {
         printf("Testi 2: Kova linkki viittaa samaan tiedostoon kuin alkuperäinen\n");
     }
@@ -52,7 +56,7 @@ int sameFile(int fd1, int fd2) {
     struct stat file1_info, file2_info;
 
     if(fstat(fd1, &file1_info) < 0  || fstat(fd2, &file2_info) < 0) {
-        perror("fstat() epäonnistui\n");
+        perror("fstat() epäonnistui: ");
         exit(EXIT_FAILURE);
     }
 
