@@ -13,6 +13,8 @@ int pipe_fd[2];
 struct sigaction act;
 
 void sig_handler(int sig) {
+    char buf[MAX_LINESIZE] = "In handler, exiting program\n";
+    write(STDOUT_FILENO, (void*)buf, MAX_LINESIZE);
     exit(EXIT_SUCCESS);
 }
 
@@ -21,7 +23,9 @@ int main() {
     act.sa_handler = sig_handler;
     act.sa_flags = 0;
     sigemptyset(&act.sa_mask);
-    sigaction(SIGINT, &act, NULL);
+    sigaction(SIGCHLD, &act, NULL);
+
+    printf("In parent, PID: %d\n", getpid());
 
     if(pipe(pipe_fd) < 0) {
         perror("Failed to create pipe: ");
@@ -46,19 +50,16 @@ int main() {
 
     if(new_pid == 0) {
         //In child process
-        char *buf;
+        char buf[MAX_LINESIZE];
         printf("In child, PID: %d\n", getpid());
-        printf("fuufuuu\n");
 
-        int counter = 0;
-        while(1) {
-            if(counter == 20) exit(EXIT_SUCCESS);
-            printf("hujaa");
-            sprintf(buf, "Child doing iteration %d", counter);
+        for(int i = 0; i < 20; i++) {
+            sprintf(buf, "Child doing iteration %d", i);
             write(pipe_fd[1], (void*)buf, strlen(buf));
-            counter++;
             sleep(1);
-        }
+        }    
+        printf("Exiting child\n");
+        exit(EXIT_SUCCESS);
     }
 
     if(new_pid > 0) {
@@ -97,8 +98,4 @@ int main() {
 
         }
     }
-
-
-
-
 }
