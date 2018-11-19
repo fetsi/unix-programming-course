@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/select.h>
 
 #define MAX_LINESIZE 256
 
@@ -28,37 +29,43 @@ void child_loop(int pipe_write_fd) {
     exit(EXIT_SUCCESS);
 }
 
+void read_input(int fd, char *rbuf) {
+    
+    int rcv = read(fd, (void*)rbuf, MAX_LINESIZE);
+    if(rcv == -1) {
+        perror("Error reading from stdin: ");
+        exit(EXIT_FAILURE);
+        }
+    if(rcv > 0) {
+        rbuf[rcv] = '\0'; //Add terminating NUL character
+        printf("%s\n", rbuf);
+    }
+
+}
+
+
+
 void parent_loop(int pipe_read_fd) {
+    char rbuf_stdin[MAX_LINESIZE + 1];
+    char rbuf_pipe[MAX_LINESIZE + 1];
+    fd_set set;
+
     while(1) {
-        char rbuf_stdin[MAX_LINESIZE + 1];
-        char rbuf_pipe[MAX_LINESIZE + 1];
-        int rcv_stdin, rcv_pipe;
+        FD_ZERO(&set);
+        FD_SET(STDIN_FILENO, &set);
+        FD_SET(pipe_read_fd, &set);
 
-        rcv_stdin = read(STDIN_FILENO, (void*)rbuf_stdin, MAX_LINESIZE);
-
-        if(rcv_stdin == -1) {
-            if(errno != EAGAIN) {
-                perror("Error reading from stdin: ");
-                exit(EXIT_FAILURE);
-            }
-            //The error was EAGAIN, so we will just wait for some input
+        //The call to select will block until there is something to read from either stdin or the pipe
+        if(select(pipe_read_fd + 1, &set, NULL, NULL, NULL) < 0) {
+            perror("Error in select(): ");
+            exit(EXIT_FAILURE);
         }
 
-        rcv_pipe = read(pipe_read_fd, (void*)rbuf_pipe, MAX_LINESIZE);
-
-        if(rcv_pipe == -1) {
-            if(errno != EAGAIN) {
-                perror("Error reading from pipe: ");
-                exit(EXIT_FAILURE);
-            }
-            //The error was EAGAIN, so we will just wait for some input
+        if(FD_ISSET(STDIN_FILENO, &set)) {
+            read_input(STDIN_FILENO, rbuf_stdin);
         }
-
-        if(rcv_stdin > 0) {
-            printf("%s\n", rbuf_stdin);
-        }
-        if(rcv_pipe > 0) {
-            printf("%s\n", rbuf_pipe);
+        if(FD_ISSET(pipe_read_fd, &set)) {
+            read_input(pipe_read_fd, rbuf_pipe);
         }
     }
 }
